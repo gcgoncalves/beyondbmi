@@ -1,5 +1,5 @@
-import { Redirect } from 'expo-router';
+import HomeScreen from '../(stack)/home';
 
 export default function Booking() {
-  return <Redirect href="/home" />;
+  return <HomeScreen />;
 }

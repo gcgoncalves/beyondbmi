@@ -6,10 +6,6 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BookingProvider } from '@/contexts/BookingContext';
 
-export const unstable_settings = {
-  anchor: '(stack)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -18,7 +14,6 @@ export default function RootLayout() {
       <BookingProvider>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(stack)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </BookingProvider>

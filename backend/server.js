@@ -1,8 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const cors = require('cors');
 const mongoose = require('mongoose'); // Import Mongoose
+const express = require('express');
+const cors = require('cors');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = 3000;
 
@@ -30,6 +29,19 @@ slotSchema.index({ date: 1, time: 1 }, { unique: true });
 
 const Slot = mongoose.model('Slot', slotSchema);
 
+// Mongoose Schema for Users
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  bookings: [{
+    date: { type: String, required: true },
+    time: { type: String, required: true },
+    slotId: { type: mongoose.Schema.Types.ObjectId, ref: 'Slot' } // Reference to the booked slot
+  }],
+});
+
+const User = mongoose.model('User', userSchema);
+
 // Helper to get current date in YYYY-MM-DD format
 const get_current_date = () => {
   const today = new Date();
@@ -46,10 +58,8 @@ const createDefaultSlotsForDay = async (date) => {
     const time = `${i.toString().padStart(2, '0')}:00`;
     slotsToCreate.push({ date, time, isBooked: false, userName: null, userEmail: null });
   }
-  // Use insertMany with `ordered: false` to continue even if some docs already exist (e.g., from a previous run)
   await Slot.insertMany(slotsToCreate, { ordered: false })
     .catch(error => {
-      // Ignore duplicate key errors (code 11000) which means slot already exists
       if (error.code !== 11000) {
         console.error("Error creating default slots:", error);
       }
@@ -62,20 +72,17 @@ app.get('/api/appointments', async (req, res) => {
   const requestedDateStr = req.query.date || get_current_date();
   const todayStr = get_current_date();
 
-  // Past date validation
   if (requestedDateStr < todayStr) {
     return res.status(422).json({ error: 'Cannot request appointments for a past date.', code: 'invalid_input' });
   }
 
   try {
-    // Ensure default slots exist for the requested date
     await createDefaultSlotsForDay(requestedDateStr);
 
-    // Fetch available slots from MongoDB
     const availableSlots = await Slot.find({
       date: requestedDateStr,
       isBooked: false,
-    }).select('time -_id').lean(); // Select only 'time' and exclude '_id'
+    }).select('time -_id').lean();
 
     res.json(availableSlots);
   } catch (error) {
@@ -95,12 +102,20 @@ app.post('/api/book', async (req, res) => {
 
   try {
     const updatedSlot = await Slot.findOneAndUpdate(
-      { date, time, isBooked: false }, // Find an unbooked slot
-      { $set: { isBooked: true, userName, userEmail } }, // Set it as booked
-      { new: true } // Return the updated document
+      { date, time, isBooked: false },
+      { $set: { isBooked: true, userName, userEmail } },
+      { new: true }
     );
 
     if (updatedSlot) {
+      // Find or create user and add booking
+      let user = await User.findOne({ email: userEmail });
+      if (!user) {
+        user = new User({ email: userEmail, name: userName, bookings: [] });
+      }
+      user.bookings.push({ date, time, slotId: updatedSlot._id });
+      await user.save();
+
       return res.status(200).json({ message: `Slot ${time} on ${date} booked successfully for ${userName}.` });
     } else {
       return res.status(409).json({ message: `Slot ${time} on ${date} is already booked or does not exist.` });
@@ -113,7 +128,7 @@ app.post('/api/book', async (req, res) => {
 
 // /api/pay route
 app.post('/api/pay', async (req, res) => {
-  const fixedAmount = 5000; // 50 EUR in cents
+  const fixedAmount = 5000;
   const fixedCurrency = 'eur';
   console.log(`Received payment request. Fixed amount: ${fixedAmount}, fixed currency: ${fixedCurrency}`);
 
@@ -149,12 +164,17 @@ app.post('/api/cancel-booking', async (req, res) => {
 
   try {
     const updatedSlot = await Slot.findOneAndUpdate(
-      { date, time, isBooked: true }, // Find a booked slot
-      { $set: { isBooked: false, userName: null, userEmail: null } }, // Set it as unbooked
+      { date, time, isBooked: true },
+      { $set: { isBooked: false, userName: null, userEmail: null } },
       { new: true }
     );
 
     if (updatedSlot) {
+      // Also remove booking from user's record
+      await User.findOneAndUpdate(
+        { email: updatedSlot.userEmail },
+        { $pull: { bookings: { slotId: updatedSlot._id } } }
+      );
       return res.status(200).json({ message: `Booking for ${time} on ${date} cancelled successfully.` });
     } else {
       return res.status(404).json({ message: `No active booking found for ${time} on ${date}.` });
@@ -165,7 +185,32 @@ app.post('/api/cancel-booking', async (req, res) => {
   }
 });
 
-// Start Express server only after MongoDB connection is open
+// New /api/user/appointments route
+app.post('/api/user/appointments', async (req, res) => {
+  const { email } = req.body;
+  console.log(`Fetching appointments for user: ${email}`);
+
+  if (!email) {
+    return res.status(400).json({ message: 'User email is required.' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.json({
+      appointments: user.bookings,
+    });
+
+  } catch (error) {
+    console.error('Error fetching user appointments:', error);
+    res.status(500).json({ message: 'Internal server error while fetching user appointments.' });
+  }
+});
+
 mongoose.connection.once('open', () => {
   app.listen(port, () => {
     console.log(`Backend server listening at http://localhost:${port}`);

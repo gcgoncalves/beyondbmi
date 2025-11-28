@@ -3,7 +3,7 @@ import { useBooking } from '@/contexts/BookingContext';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, StyleSheet, View, Modal } from 'react-native';
+import { ActivityIndicator, Alert, Button, Modal, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -85,7 +85,7 @@ export default function PaymentScreen() {
     } finally {
       setLoading(false);
     }
-  }, []); // Removed initPaymentSheet from dependencies to avoid infinite loop
+  }); // Removed initPaymentSheet from dependencies to avoid infinite loop
 
   const cancelBooking = async () => {
     if (!API_BASE_URL || !selectedSlot || !selectedDate) {
@@ -171,7 +171,7 @@ export default function PaymentScreen() {
     } else if (!STRIPE_PUBLISHABLE_KEY) {
         Alert.alert("Configuration Error", "STRIPE_PUBLISHABLE_KEY is not set. Check your .env file and restart the server.");
     }
-  }, [API_BASE_URL, STRIPE_PUBLISHABLE_KEY, initializePaymentSheet]); // Added initializePaymentSheet to dependencies
+  }, [initializePaymentSheet]); // Added initializePaymentSheet to dependencies
 
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY || ''}>

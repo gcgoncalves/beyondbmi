@@ -53,7 +53,7 @@ export default function HomeScreen() {
 
   const handleSlotPress = useCallback((slot: Slot) => {
     setSelectedSlot(slot);
-    router.push('/booking');
+    router.push('/booking-details');
   }, [setSelectedSlot, router]);
 
   const renderSlotItem = useCallback(({ item }: { item: Slot }) => {
