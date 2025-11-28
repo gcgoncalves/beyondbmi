@@ -2,8 +2,8 @@ import { ThemedText } from '@/components/themed-text';
 import { useBooking } from '@/contexts/BookingContext';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { Alert, Button, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Button, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -57,7 +57,7 @@ export default function PaymentScreen() {
     };
   };
 
-  const initializePaymentSheet = async () => {
+  const initializePaymentSheet = useCallback(async () => {
     setLoading(true);
     if (!STRIPE_PUBLISHABLE_KEY) {
       Alert.alert("Error", "Stripe publishable key not set in .env file.");
@@ -84,7 +84,7 @@ export default function PaymentScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [initPaymentSheet]);
 
   const openPaymentSheet = async () => {
     if (loading) {
@@ -114,7 +114,7 @@ export default function PaymentScreen() {
     } else if (!STRIPE_PUBLISHABLE_KEY) {
         Alert.alert("Configuration Error", "STRIPE_PUBLISHABLE_KEY is not set. Check your .env file and restart the server.");
     }
-  }, [API_BASE_URL, STRIPE_PUBLISHABLE_KEY]); // Dependencies for useEffect
+  }, [initializePaymentSheet]);
 
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY || ''}>
