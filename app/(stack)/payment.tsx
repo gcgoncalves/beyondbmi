@@ -10,7 +10,7 @@ const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 export default function PaymentScreen() {
-  const { selectedSlot, userName, userEmail } = useBooking();
+  const { selectedSlot, selectedDate, userName, userEmail } = useBooking();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -86,22 +86,62 @@ export default function PaymentScreen() {
     }
   }, [initPaymentSheet]);
 
+  const cancelBooking = async () => {
+    if (!API_BASE_URL || !selectedSlot || !selectedDate) {
+      console.error("Missing info for booking cancellation.");
+      return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/cancel-booking`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: selectedDate,
+                time: selectedSlot.time,
+            }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            console.log("Booking successfully cancelled:", data.message);
+        } else {
+            console.error("Failed to cancel booking:", data.message);
+        }
+    } catch (error) {
+        console.error("Network error during booking cancellation:", error);
+    }
+  };
+
+
   const openPaymentSheet = async () => {
     if (loading) {
       Alert.alert("Please wait", "Payment sheet is still initializing.");
       return;
     }
     try {
-      const { error } = await presentPaymentSheet();
+      const { error, paymentOption } = await presentPaymentSheet(); // paymentOption can be null on user dismissal
 
       if (error) {
-        Alert.alert(`Error code: ${error.code}`, error.message);
+        if (error.code === 'Canceled') {
+            Alert.alert('Payment Cancelled', 'You cancelled the payment process.');
+            // Cancel the booking if payment was cancelled
+            await cancelBooking();
+        } else {
+            Alert.alert(`Error code: ${error.code}`, error.message);
+            // Cancel the booking if payment failed for other reasons
+            await cancelBooking();
+        }
       } else {
+        // Payment successful, booking is already done
         Alert.alert('Success', 'Your order is confirmed!');
         router.push('/confirmation'); // Navigate to confirmation on success
       }
     } catch (e: any) {
       Alert.alert("Error presenting payment sheet", e.message);
+      await cancelBooking(); // Cancel booking if there's an unexpected error presenting sheet
     }
   };
 
@@ -114,19 +154,19 @@ export default function PaymentScreen() {
     } else if (!STRIPE_PUBLISHABLE_KEY) {
         Alert.alert("Configuration Error", "STRIPE_PUBLISHABLE_KEY is not set. Check your .env file and restart the server.");
     }
-  }, [initializePaymentSheet]);
+  }, [API_BASE_URL, STRIPE_PUBLISHABLE_KEY, initializePaymentSheet]); // Added initializePaymentSheet to dependencies
 
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY || ''}>
       <SafeAreaView style={styles.container}>
         <ThemedText type="title">Payment</ThemedText>
-        {selectedSlot && (
-          <ThemedText type="subtitle">Booking a session at {selectedSlot.time}</ThemedText>
+        {selectedSlot && selectedDate && (
+          <ThemedText type="subtitle">Booking a session at {selectedSlot.time} on {selectedDate}</ThemedText>
         )}
         <ThemedText>Name: {userName}</ThemedText>
         <ThemedText>Email: {userEmail}</ThemedText>
 
-        <Button title="Pay with Card" onPress={openPaymentSheet} disabled={loading} />
+        <Button title="Pay with Card" onPress={openPaymentSheet} disabled={loading || !selectedSlot || !userName || !userEmail} />
         {loading && <ActivityIndicator size="large" style={styles.activityIndicator} />}
       </SafeAreaView>
     </StripeProvider>

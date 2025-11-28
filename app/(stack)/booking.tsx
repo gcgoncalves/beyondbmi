@@ -5,8 +5,10 @@ import React, { useState } from 'react';
 import { Alert, Button, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 export default function BookingScreen() {
-  const { selectedSlot, userName, setUserName, userEmail, setUserEmail } = useBooking();
+  const { selectedSlot, selectedDate, userName, setUserName, userEmail, setUserEmail } = useBooking();
   const [nameInput, setNameInput] = useState(userName);
   const [emailInput, setEmailInput] = useState(userEmail);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -18,7 +20,7 @@ export default function BookingScreen() {
     return re.test(email);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let valid = true;
 
     if (!nameInput.trim()) {
@@ -38,10 +40,46 @@ export default function BookingScreen() {
       setEmailError(null);
     }
 
+    if (!selectedSlot || !selectedDate) {
+      Alert.alert('Booking Error', 'No slot or date selected. Please go back to Home and select a slot and date.');
+      valid = false;
+    }
+
     if (valid) {
-      setUserName(nameInput);
-      setUserEmail(emailInput);
-      router.push('/payment');
+      // First, attempt to book the slot on the backend
+      if (!API_BASE_URL) {
+        Alert.alert("Configuration Error", "API_BASE_URL is not set. Cannot book appointment.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/book`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: selectedDate,
+            time: selectedSlot?.time,
+            userName: nameInput,
+            userEmail: emailInput,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // If booking is successful, save user info to context and proceed to payment
+          setUserName(nameInput);
+          setUserEmail(emailInput);
+          Alert.alert('Booking Reserved', data.message);
+          router.push('/payment');
+        } else {
+          Alert.alert('Booking Error', data.message || 'Failed to reserve slot. It might be already booked.');
+        }
+      } catch (error: any) {
+        Alert.alert('Network Error', 'Could not connect to the booking service: ' + error.message);
+      }
     } else {
       Alert.alert('Validation Error', 'Please correct the errors in the form.');
     }
@@ -50,8 +88,8 @@ export default function BookingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ThemedText type="title">Booking</ThemedText>
-      {selectedSlot && (
-        <ThemedText type="subtitle">Booking a session at {selectedSlot.time}</ThemedText>
+      {selectedSlot && selectedDate && (
+        <ThemedText type="subtitle">Booking a session at {selectedSlot.time} on {selectedDate}</ThemedText>
       )}
 
       <ThemedText style={styles.label}>Name:<ThemedText style={styles.requiredAsterisk}>*</ThemedText></ThemedText>
