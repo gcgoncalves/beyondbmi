@@ -9,22 +9,23 @@ interface Slot {
   time: string;
 }
 
-const fetchAvailableSlots = async (): Promise<Slot[]> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Simulate an error 10% of the time
-      if (Math.random() < 0.1) {
-        reject(new Error("Failed to fetch slots. Please try again."));
-        return;
-      }
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
-      const slots: Slot[] = [];
-      for (let i = 9; i <= 17; i++) {
-        slots.push({ time: `${i.toString().padStart(2, '0')}:00` });
-      }
-      resolve(slots);
-    }, 500); // Simulate network delay
-  });
+const fetchAvailableSlots = async (): Promise<Slot[]> => {
+  try {
+    if (!API_BASE_URL) {
+      throw new Error("API_BASE_URL is not defined in the environment variables.");
+    }
+    const response = await fetch(`${API_BASE_URL}/api/appointments`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching available slots:", error);
+    throw error;
+  }
 };
 
 export default function HomeScreen() {
@@ -93,10 +94,6 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 5,
     alignItems: 'center',
-  },
-  link: {
-    marginTop: 16,
-    paddingVertical: 16,
   },
   errorText: {
     color: 'red',
