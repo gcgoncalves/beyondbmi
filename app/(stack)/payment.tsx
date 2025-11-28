@@ -3,7 +3,7 @@ import { useBooking } from '@/contexts/BookingContext';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Button, StyleSheet, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -14,6 +14,7 @@ export default function PaymentScreen() {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const fetchPaymentSheetParams = async () => {
     if (!API_BASE_URL) {
@@ -84,7 +85,7 @@ export default function PaymentScreen() {
     } finally {
       setLoading(false);
     }
-  }, [initPaymentSheet]);
+  }, []); // Removed initPaymentSheet from dependencies to avoid infinite loop
 
   const cancelBooking = async () => {
     if (!API_BASE_URL || !selectedSlot || !selectedDate) {
@@ -116,13 +117,28 @@ export default function PaymentScreen() {
   };
 
 
+  const handleCancel = () => {
+    setShowCancelModal(true);
+  };
+
+  const confirmCancel = async () => {
+    setShowCancelModal(false);
+    await cancelBooking(); // Cancel booking in backend
+    router.push('/home'); // Navigate back to home screen
+  };
+
+  const dismissCancel = () => {
+    setShowCancelModal(false);
+  };
+
+
   const openPaymentSheet = async () => {
     if (loading) {
       Alert.alert("Please wait", "Payment sheet is still initializing.");
       return;
     }
     try {
-      const { error, paymentOption } = await presentPaymentSheet(); // paymentOption can be null on user dismissal
+      const { error } = await presentPaymentSheet(); // paymentOption can be null on user dismissal
 
       if (error) {
         if (error.code === 'Canceled') {
@@ -134,6 +150,7 @@ export default function PaymentScreen() {
             // Cancel the booking if payment failed for other reasons
             await cancelBooking();
         }
+        // Stay on payment page to allow user to try again
       } else {
         // Payment successful, booking is already done
         Alert.alert('Success', 'Your order is confirmed!');
@@ -168,6 +185,26 @@ export default function PaymentScreen() {
 
         <Button title="Pay with Card" onPress={openPaymentSheet} disabled={loading || !selectedSlot || !userName || !userEmail} />
         {loading && <ActivityIndicator size="large" style={styles.activityIndicator} />}
+        
+        <View style={styles.spacing} />
+        <Button title="Cancel" onPress={handleCancel} color="red" />
+
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showCancelModal}
+          onRequestClose={dismissCancel}>
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <ThemedText>Are you sure you want to cancel and return to available slots? This will release your reserved slot.</ThemedText>
+              <View style={styles.modalButtons}>
+                <Button title="Yes, Cancel" onPress={confirmCancel} color="red" />
+                <View style={styles.spacing} />
+                <Button title="No, Keep Going" onPress={dismissCancel} />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </StripeProvider>
   );
@@ -180,6 +217,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activityIndicator: {
+    marginTop: 20,
+  },
+  spacing: {
+    height: 10, // Or width for horizontal spacing
+    width: 10,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalButtons: {
+    flexDirection: 'row',
     marginTop: 20,
   },
 });

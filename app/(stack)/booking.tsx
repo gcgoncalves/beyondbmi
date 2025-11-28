@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useBooking } from '@/contexts/BookingContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Button, StyleSheet, TextInput } from 'react-native';
+import { Alert, Button, StyleSheet, TextInput, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -13,6 +13,7 @@ export default function BookingScreen() {
   const [emailInput, setEmailInput] = useState(userEmail);
   const [nameError, setNameError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const router = useRouter();
 
   const validateEmail = (email: string) => {
@@ -85,6 +86,19 @@ export default function BookingScreen() {
     }
   };
 
+  const handleCancel = () => {
+    setShowCancelModal(true);
+  };
+
+  const confirmCancel = () => {
+    setShowCancelModal(false);
+    router.push('/home'); // Navigate back to home screen
+  };
+
+  const dismissCancel = () => {
+    setShowCancelModal(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ThemedText type="title">Booking</ThemedText>
@@ -113,6 +127,25 @@ export default function BookingScreen() {
       {emailError && <ThemedText style={styles.errorText}>{emailError}</ThemedText>}
 
       <Button title="Submit Booking" onPress={handleSubmit} />
+      <View style={styles.spacing} />
+      <Button title="Cancel" onPress={handleCancel} color="red" />
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showCancelModal}
+        onRequestClose={dismissCancel}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <ThemedText>Are you sure you want to cancel and return to available slots?</ThemedText>
+            <View style={styles.modalButtons}>
+              <Button title="Yes, Cancel" onPress={confirmCancel} color="red" />
+              <View style={styles.spacing} />
+              <Button title="No, Keep Going" onPress={dismissCancel} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -146,8 +179,33 @@ const styles = StyleSheet.create({
   requiredAsterisk: {
     color: 'red',
   },
-  link: {
-    marginTop: 16,
-    paddingVertical: 16,
+  spacing: {
+    height: 10, // Or width for horizontal spacing
+    width: 10,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    marginTop: 20,
   },
 });
