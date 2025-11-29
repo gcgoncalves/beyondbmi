@@ -83,7 +83,6 @@ export default function BookingScreen() {
           // If booking is successful, save user info to context and proceed to payment
           setUserName(nameInput);
           setUserEmail(emailInput);
-          Alert.alert('Booking Reserved', data.message);
           router.push('/payment');
         } else {
           Alert.alert('Booking Error', data.message || 'Failed to reserve slot. It might be already booked.');

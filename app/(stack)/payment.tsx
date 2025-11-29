@@ -163,7 +163,6 @@ export default function PaymentScreen() {
         // Stay on payment page to allow user to try again
       } else {
         // Payment successful, booking is already done
-        Alert.alert('Success', 'Your order is confirmed!');
         router.push('/confirmation'); // Navigate to confirmation on success
       }
     } catch (e: any) {
