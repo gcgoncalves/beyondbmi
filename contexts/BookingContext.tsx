@@ -18,6 +18,7 @@ interface BookingContextType {
   setUserEmail: (email: string) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
+  resetBooking: () => void; // Added resetBooking
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -28,8 +29,15 @@ export const BookingProvider = ({ children }: { children: ReactNode }) => {
   const [userEmail, setUserEmail] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
+  const resetBooking = () => {
+    setSelectedSlot(null);
+    setUserName('');
+    setUserEmail('');
+    setSelectedDate(new Date().toISOString().slice(0, 10)); // Reset to current date
+  };
+
   return (
-    <BookingContext.Provider value={{ selectedSlot, setSelectedSlot, userName, setUserName, userEmail, setUserEmail, selectedDate, setSelectedDate }}>
+    <BookingContext.Provider value={{ selectedSlot, setSelectedSlot, userName, setUserName, userEmail, setUserEmail, selectedDate, setSelectedDate, resetBooking }}>
       {children}
     </BookingContext.Provider>
   );

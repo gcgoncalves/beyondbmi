@@ -1,13 +1,23 @@
-import { ThemedText } from '@/components/themed-text';
 import { useBooking } from '@/contexts/BookingContext';
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, Modal, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, Modal, StyleSheet, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+// Define some basic colors and dimensions for consistent styling
+const primaryColor = '#6200EE';
+const accentColor = '#03DAC6';
+const textColor = '#333333';
+const backgroundColor = '#F5F5F5';
+const errorColor = 'red';
+const borderRadius = 8;
+const paddingHorizontal = 20;
+const marginVertical = 10;
+
 
 export default function PaymentScreen() {
   const { selectedSlot, selectedDate, userName, userEmail } = useBooking();
@@ -16,7 +26,7 @@ export default function PaymentScreen() {
   const [loading, setLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  const fetchPaymentSheetParams = async () => {
+  const fetchPaymentSheetParams = useCallback(async () => {
     if (!API_BASE_URL) {
       console.error("API_BASE_URL is not defined in the environment variables.");
       throw new Error("API_BASE_URL is not defined in the environment variables.");
@@ -56,7 +66,7 @@ export default function PaymentScreen() {
     return {
       paymentIntentClientSecret,
     };
-  };
+  }, []);
 
   const initializePaymentSheet = useCallback(async () => {
     setLoading(true);
@@ -85,7 +95,7 @@ export default function PaymentScreen() {
     } finally {
       setLoading(false);
     }
-  }); // Removed initPaymentSheet from dependencies to avoid infinite loop
+  }, [fetchPaymentSheetParams, initPaymentSheet]); // Added fetchPaymentSheetParams and initPaymentSheet to dependencies
 
   const cancelBooking = async () => {
     if (!API_BASE_URL || !selectedSlot || !selectedDate) {
@@ -171,23 +181,27 @@ export default function PaymentScreen() {
     } else if (!STRIPE_PUBLISHABLE_KEY) {
         Alert.alert("Configuration Error", "STRIPE_PUBLISHABLE_KEY is not set. Check your .env file and restart the server.");
     }
-  }, [initializePaymentSheet]); // Added initializePaymentSheet to dependencies
+  }, [initializePaymentSheet, initPaymentSheet]); // Added initPaymentSheet to dependencies
 
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY || ''}>
       <SafeAreaView style={styles.container}>
-        <ThemedText type="title">Payment</ThemedText>
+        <Text style={styles.title}>Payment</Text>
         {selectedSlot && selectedDate && (
-          <ThemedText type="subtitle">Booking a session at {selectedSlot.time} on {selectedDate}</ThemedText>
+          <Text style={styles.subtitle}>Booking a session at {selectedSlot.time} on {selectedDate}</Text>
         )}
-        <ThemedText>Name: {userName}</ThemedText>
-        <ThemedText>Email: {userEmail}</ThemedText>
+        <Text style={styles.defaultText}>Name: {userName}</Text>
+        <Text style={styles.defaultText}>Email: {userEmail}</Text>
 
-        <Button title="Pay with Card" onPress={openPaymentSheet} disabled={loading || !selectedSlot || !userName || !userEmail} />
-        {loading && <ActivityIndicator size="large" style={styles.activityIndicator} />}
+        <View style={styles.buttonContainer}>
+            <Button title="Pay with Card" onPress={openPaymentSheet} disabled={loading || !selectedSlot || !userName || !userEmail} color={primaryColor} />
+        </View>
+        {loading && <ActivityIndicator size="large" color={primaryColor} style={styles.activityIndicator} />}
         
         <View style={styles.spacing} />
-        <Button title="Cancel" onPress={handleCancel} color="red" />
+        <View style={styles.buttonContainer}>
+            <Button title="Cancel" onPress={handleCancel} color={errorColor} />
+        </View>
 
         <Modal
           animationType="slide"
@@ -196,11 +210,15 @@ export default function PaymentScreen() {
           onRequestClose={dismissCancel}>
           <View style={styles.centeredView}>
             <View style={styles.modalView}>
-              <ThemedText>Are you sure you want to cancel and return to available slots? This will release your reserved slot.</ThemedText>
+              <Text style={styles.defaultText}>Are you sure you want to cancel and return to available slots? This will release your reserved slot.</Text>
               <View style={styles.modalButtons}>
-                <Button title="Yes, Cancel" onPress={confirmCancel} color="red" />
+                <View style={styles.modalButton}>
+                  <Button title="Yes, Cancel" onPress={confirmCancel} color={errorColor} />
+                </View>
                 <View style={styles.spacing} />
-                <Button title="No, Keep Going" onPress={dismissCancel} />
+                <View style={styles.modalButton}>
+                  <Button title="No, Keep Going" onPress={dismissCancel} />
+                </View>
               </View>
             </View>
           </View>
@@ -215,24 +233,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: paddingHorizontal,
+    backgroundColor: backgroundColor,
   },
   activityIndicator: {
-    marginTop: 20,
+    marginTop: marginVertical,
   },
   spacing: {
     height: 10, // Or width for horizontal spacing
     width: 10,
+  },
+  buttonContainer: {
+    width: '100%',
+    marginVertical: marginVertical,
+    borderRadius: borderRadius,
+    overflow: 'hidden',
   },
   centeredView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)', // Dim background for modal
   },
   modalView: {
     margin: 20,
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: borderRadius,
     padding: 35,
     alignItems: 'center',
     shadowColor: '#000',
@@ -247,5 +274,44 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     marginTop: 20,
+  },
+  modalButton: {
+    borderRadius: borderRadius,
+    overflow: 'hidden',
+    flex: 1, // Distribute space
+    marginHorizontal: 5,
+  },
+  // Typography styles
+  defaultText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: textColor,
+  },
+  defaultSemiBold: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: textColor,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 32,
+    color: textColor,
+    marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    lineHeight: 28,
+    color: textColor,
+    marginTop: 10, // Added top margin
+    marginBottom: 20, // Adjusted bottom margin
+    textAlign: 'center', // Ensure text is centered
+  },
+  link: {
+    lineHeight: 30,
+    fontSize: 16,
+    color: accentColor,
   },
 });

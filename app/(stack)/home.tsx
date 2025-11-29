@@ -1,9 +1,8 @@
-import { ThemedText } from '@/components/themed-text';
 import { useBooking } from '@/contexts/BookingContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Button, FlatList, Platform, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Slot {
@@ -11,6 +10,16 @@ interface Slot {
 }
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+// Define some basic colors and dimensions for consistent styling
+const primaryColor = '#6200EE';
+const accentColor = '#03DAC6';
+const textColor = '#333333';
+const backgroundColor = '#F5F5F5';
+const errorColor = 'red';
+const borderRadius = 8;
+const paddingHorizontal = 20;
+const marginVertical = 10;
 
 const fetchAvailableSlots = async (date: string): Promise<Slot[]> => {
   try {
@@ -59,7 +68,7 @@ export default function HomeScreen() {
   const renderSlotItem = useCallback(({ item }: { item: Slot }) => {
     return (
       <TouchableOpacity onPress={() => handleSlotPress(item)} style={styles.slotItem}>
-        <ThemedText>{item.time}</ThemedText>
+        <Text style={styles.defaultText}>{item.time}</Text>
       </TouchableOpacity>
     );
   }, [handleSlotPress]);
@@ -116,11 +125,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ThemedText type="title">Home</ThemedText>
-      <ThemedText type="subtitle">Available Slots for {selectedDate}:</ThemedText>
+      <Text style={styles.title}>Home</Text>
+      <Text style={styles.subtitle}>Available Slots for {selectedDate}:</Text>
 
       <TouchableOpacity onPress={showDatepicker} style={styles.datePickerButton}>
-        <ThemedText>Select Date: {selectedDate}</ThemedText>
+        <Text style={styles.datePickerButtonText}>Select Date: {selectedDate}</Text>
       </TouchableOpacity>
 
       {showDatePicker && (
@@ -142,7 +151,7 @@ export default function HomeScreen() {
       )}
 
       {error ? (
-        <ThemedText style={styles.errorText}>{error}</ThemedText>
+        <Text style={styles.errorText}>{error}</Text>
       ) : (
         <FlatList
           data={slots}
@@ -160,13 +169,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: paddingHorizontal,
+    backgroundColor: backgroundColor,
   },
   datePickerButton: {
-    padding: 10,
+    padding: 15,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginVertical: 10,
+    borderColor: primaryColor,
+    borderRadius: borderRadius,
+    marginVertical: marginVertical,
+    backgroundColor: '#fff',
+  },
+  datePickerButtonText: {
+    fontSize: 18,
+    color: primaryColor,
+    fontWeight: 'bold',
   },
   datePickerContainer: {
     // Add styling for the container if needed
@@ -174,21 +191,60 @@ const styles = StyleSheet.create({
   iosDatePickerButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 10,
+    marginTop: marginVertical,
   },
   slotList: {
-    marginTop: 10,
+    marginTop: marginVertical,
+    width: '100%', // Take full width
   },
   slotItem: {
-    padding: 10,
+    padding: 15,
     marginVertical: 5,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
+    backgroundColor: '#fff',
+    borderRadius: borderRadius,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   errorText: {
-    color: 'red',
-    marginTop: 10,
+    color: errorColor,
+    marginTop: marginVertical,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  // Typography styles
+  defaultText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: textColor,
+  },
+  defaultSemiBold: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: textColor,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 32,
+    color: textColor,
+    marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: textColor,
+    marginBottom: 15,
+  },
+  link: {
+    lineHeight: 30,
+    fontSize: 16,
+    color: accentColor,
   },
 });
