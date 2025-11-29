@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# BeyondBMI Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Quick Start
 
-## Get started
+### 1. Prerequisites
 
-1. Install dependencies
+- Node.js (LTS recommended)
+- Docker Desktop
+- Git
 
-   ```bash
-   npm install
-   ```
+### 2. Installation
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Clone the repository and install dependencies:
 
 ```bash
-npm run reset-project
+git clone https://github.com/your-repo/beyondbmi.git
+cd beyondbmi
+yarn install # Install frontend dependencies
+cd backend
+yarn install # Install backend dependencies
+cd ..
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 3. Environment Variables (`.env`)
 
-## Learn more
+Create a `.env` file in the project's root directory and populate it with:
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+MONGODB_URI=mongodb://localhost:27017/beyondbmi_db
+STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY
+EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_STRIPE_PUBLISHABLE_KEY
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+_Replace placeholders with your actual keys and desired configurations._
 
-## Join the community
+### 4. Run Backend (Docker)
 
-Join our community of developers creating universal apps.
+From the project root, build and start the Dockerized backend:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+docker-compose up --build -d
+# Check logs: docker-compose logs backend
+```
+
+### 5. Run Frontend (Expo)
+
+From the project root, start the Expo development server:
+
+```bash
+npx expo start
+# Then, choose your platform (e.g., press 'a' for Android, 'i' for iOS, or 'w' for web)
+# Or run directly:
+# yarn run android
+# yarn run ios
+```
+
+### 6. Linting
+
+Run lint checks from the project root:
+
+```bash
+yarn run lint
+```
